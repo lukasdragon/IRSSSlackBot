@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SlackBot", "SlackBot\SlackBot.csproj", "{1F5D4B33-61BA-4213-9ECF-3C9DE483FC15}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JavaJotter", "JavaJotter\JavaJotter.csproj", "{5D49BE59-E789-4609-B019-8CE85818C1A1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -8,9 +8,9 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{1F5D4B33-61BA-4213-9ECF-3C9DE483FC15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1F5D4B33-61BA-4213-9ECF-3C9DE483FC15}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1F5D4B33-61BA-4213-9ECF-3C9DE483FC15}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1F5D4B33-61BA-4213-9ECF-3C9DE483FC15}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D49BE59-E789-4609-B019-8CE85818C1A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D49BE59-E789-4609-B019-8CE85818C1A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D49BE59-E789-4609-B019-8CE85818C1A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D49BE59-E789-4609-B019-8CE85818C1A1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
