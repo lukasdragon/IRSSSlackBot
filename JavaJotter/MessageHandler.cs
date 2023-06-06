@@ -2,10 +2,10 @@
 using SlackNet.Events;
 namespace JavaJotter;
 
-internal class PingDemo : IEventHandler<MessageEvent>
+internal class MessageHandler : IEventHandler<MessageEvent>
 {
     private readonly ISlackApiClient _slack;
-    public PingDemo(ISlackApiClient slack)
+    public MessageHandler(ISlackApiClient slack)
     {
         _slack = slack;
     }
