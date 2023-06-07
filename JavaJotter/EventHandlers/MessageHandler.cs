@@ -1,6 +1,6 @@
 ﻿using SlackNet;
 using SlackNet.Events;
-namespace JavaJotter;
+namespace JavaJotter.EventHandlers;
 
 internal class MessageHandler : IEventHandler<MessageEvent>
 {
