@@ -1,4 +1,4 @@
-﻿namespace SlackBot.Configuration.Interfaces;
+﻿namespace JavaJotter.Configuration.Interfaces;
 
 public interface IAppAuthSettings
 {
