@@ -9,48 +9,49 @@ using SlackNet;
 using SlackNet.Autofac;
 using SlackNet.Events;
 using ILogger = JavaJotter.Interfaces.ILogger;
+
 namespace JavaJotter;
 
 public static class Program
 {
+    private static volatile CancellationTokenSource _cancellationToken = new();
+
+
     private static ISlackSocketModeClient? _client;
     private static IContainer? Container { get; set; }
 
 
     private static async Task Main()
     {
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => { Cleanup(); };
 
-        try
-        {
-            AppDomain.CurrentDomain.ProcessExit += (_, _) =>
-            {
-                Cleanup();
-            };
+        Console.CancelKeyPress += CancelHandler;
 
 
-            var settings = RetrieveSettings();
-            Container = BuildContainer(settings);
+        var settings = RetrieveSettings();
+        Container = BuildContainer(settings);
 
-            var logger = Container.Resolve<ILogger>();
+        var logger = Container.Resolve<ILogger>();
 
-            logger.Log("Connecting...");
-            _client = Container.SlackServices().GetSocketModeClient();
-            await _client.Connect();
-            logger.Log("Connected. Waiting for events...");
+        logger.Log("Connecting...");
+        _client = Container.SlackServices().GetSocketModeClient();
+        await _client.Connect();
+        logger.Log("Connected. Waiting for events...");
 
 
-            Container.Resolve<IScrapper>().Scrape();
+        Container.Resolve<IScrapper>().Scrape();
 
-            await MaintainLoop(logger);
-        }
-        finally
-        {
-            Cleanup();
-        }
+        await MaintainLoop(logger);
     }
+
+    private static void CancelHandler(object? sender, ConsoleCancelEventArgs args)
+    {
+        args.Cancel = true;
+        _cancellationToken.Cancel();
+    }
+
     private static IContainer BuildContainer(IAppAuthSettings settings)
     {
-
         var builder = new ContainerBuilder();
         builder.Register(c => settings).As<IAppAuthSettings>().SingleInstance();
 
@@ -73,7 +74,6 @@ public static class Program
 
     private static IAppAuthSettings RetrieveSettings()
     {
-
         var settings = new ConfigurationBuilder<IAppAuthSettings>()
             .UseYamlFile("token.yaml").Build();
 
@@ -90,12 +90,15 @@ public static class Program
         {
             _client?.Disconnect();
         }
-        catch (ObjectDisposedException) {} // If we are disposed, no worries.
+        catch (ObjectDisposedException)
+        {
+        } // If we are disposed, no worries.
     }
 
     private static async Task MaintainLoop(ILogger logger)
     {
-        logger.Log("Press any key to exit.");
-        await Task.Run(Console.ReadKey);
+        await Task.Delay(-1, _cancellationToken.Token);
+
+        logger.Log("Exiting...");
     }
 }

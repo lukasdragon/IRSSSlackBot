@@ -16,8 +16,6 @@ public class ScrappingService : IScrapper
     }
 
 
-
-
     public async Task Scrape(DateTime date)
     {
         var conversationListResponse = await _slackClient.Conversations.List();
