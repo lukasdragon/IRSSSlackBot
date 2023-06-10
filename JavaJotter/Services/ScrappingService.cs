@@ -2,6 +2,7 @@
 using SlackNet;
 using SlackNet.Events;
 using ILogger = JavaJotter.Interfaces.ILogger;
+
 namespace JavaJotter.Services;
 
 public class ScrappingService : IScrapper
@@ -23,13 +24,13 @@ public class ScrappingService : IScrapper
 
         foreach (var channel in conversationListResponse.Channels)
         {
-
             var messages = await GetMessages(channel);
+
+            messages.Reverse();
 
 
             foreach (var messageEvent in messages)
                 _logger.Log(messageEvent);
-
         }
     }
 
@@ -37,15 +38,17 @@ public class ScrappingService : IScrapper
     {
         var messageEvents = new List<MessageEvent>();
 
-        var history = await _slackClient.Conversations.History(conversation.Id);
-
-        messageEvents.AddRange(history.Messages);
-
-
-        if (history.HasMore)
-            _logger.Log($"There are more messages in {conversation.Name}");
+        var latestTs = "";
+        var hasMore = true;
+        
+        while (hasMore)
+        {
+            var history = await _slackClient.Conversations.History(conversation.Id, latestTs);
+            messageEvents.AddRange(history.Messages);
+            latestTs = history.Messages.Last().Ts;
+            hasMore = history.HasMore;
+        }
 
         return messageEvents;
-
     }
 }
