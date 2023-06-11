@@ -5,10 +5,10 @@ using ILogger = JavaJotter.Interfaces.ILogger;
 
 namespace JavaJotter.Services;
 
-public class ScrappingService : IScrapper
+public class ScrappingService : IMessageScrapper
 {
     private readonly ILogger _logger;
-    private ISlackApiClient _slackClient;
+    private readonly ISlackApiClient _slackClient;
 
     public ScrappingService(ISlackServiceProvider slackServiceProvider, ILogger logger)
     {
@@ -17,10 +17,13 @@ public class ScrappingService : IScrapper
     }
 
 
+    public event EventHandler<MessagesScrapedArgs>? MessagesScraped;
+
     public async Task Scrape(DateTime date)
     {
         var conversationListResponse = await _slackClient.Conversations.List();
 
+        var messageEvents = new List<MessageEvent>();
 
         foreach (var channel in conversationListResponse.Channels)
         {
@@ -28,19 +31,19 @@ public class ScrappingService : IScrapper
 
             messages.Reverse();
 
-
-            foreach (var messageEvent in messages)
-                _logger.Log(messageEvent);
+            messageEvents.AddRange(messages);
         }
+
+        MessagesScraped?.Invoke(this, new MessagesScrapedArgs(messageEvents));
     }
 
-    public async Task<List<MessageEvent>> GetMessages(Conversation conversation)
+    private async Task<List<MessageEvent>> GetMessages(Conversation conversation)
     {
         var messageEvents = new List<MessageEvent>();
 
         var latestTs = "";
         var hasMore = true;
-        
+
         while (hasMore)
         {
             var history = await _slackClient.Conversations.History(conversation.Id, latestTs);

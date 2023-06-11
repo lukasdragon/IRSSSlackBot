@@ -2,12 +2,10 @@
 using Autofac;
 using Config.Net;
 using JavaJotter.Configuration.Interfaces;
-using JavaJotter.EventHandlers;
 using JavaJotter.Interfaces;
 using JavaJotter.Services;
 using SlackNet;
 using SlackNet.Autofac;
-using SlackNet.Events;
 using ILogger = JavaJotter.Interfaces.ILogger;
 
 namespace JavaJotter;
@@ -39,7 +37,7 @@ public static class Program
         logger.Log("Connected. Waiting for events...");
 
 
-        Container.Resolve<IScrapper>().Scrape();
+        Container.Resolve<IMessageScrapper>().Scrape();
 
         await MaintainLoop(logger);
     }
@@ -58,15 +56,15 @@ public static class Program
         builder.RegisterType<ConsoleLoggingService>().As<ILogger>();
 
         builder.AddSlackNet(c => c
-            .UseApiToken(settings.OAuthToken)
-            .UseAppLevelToken(settings.AppLevelToken)
+                .UseApiToken(settings.OAuthToken)
+                .UseAppLevelToken(settings.AppLevelToken)
 
             //Register our slack events here
-            .RegisterEventHandler<MessageEvent, MessageHandler>()
+            //   .RegisterEventHandler<MessageEvent, MessageHandler>()
         );
 
 
-        builder.RegisterType<ScrappingService>().As<IScrapper>();
+        builder.RegisterType<ScrappingService>().As<IMessageScrapper>();
 
 
         return builder.Build();
