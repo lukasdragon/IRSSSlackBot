@@ -4,24 +4,30 @@ namespace JavaJotter.Services;
 
 public class ConsoleLoggingService : ILogger
 {
-    public void Log(string message)
+    public void Log(string message, ILogger.LogSeverity logSeverity = ILogger.LogSeverity.Info)
     {
-        Console.ForegroundColor = ConsoleColor.White;
+        Console.ForegroundColor = SeverityToColor(logSeverity);
         Console.WriteLine(message);
         Console.ResetColor();
     }
 
-    public void LogWarning(string message)
+    private static ConsoleColor SeverityToColor(ILogger.LogSeverity logSeverity)
     {
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine(message);
-        Console.ResetColor();
-    }
+        ConsoleColor color;
+        switch (logSeverity)
+        {
+            case ILogger.LogSeverity.Warning:
+                color = ConsoleColor.Yellow;
+                break;
+            case ILogger.LogSeverity.Error:
+                color = ConsoleColor.Red;
+                break;
+            case ILogger.LogSeverity.Info:
+            default:
+                color = ConsoleColor.White;
+                break;
+        }
 
-    public void LogError(string message)
-    {
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine(message);
-        Console.ResetColor();
+        return color;
     }
 }

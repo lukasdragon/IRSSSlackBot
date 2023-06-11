@@ -5,7 +5,26 @@ namespace JavaJotter;
 
 public static class LoggerExtensions
 {
-    public static void Log(this ILogger logger, MessageEvent messageEvent)
+    public static void Log(this ILogger logger, MessageEventBase messageEvent)
+    {
+        var message = ConstructMessageString(messageEvent);
+        logger.Log(message);
+    }
+
+
+    public static void LogWarning(this ILogger logger, MessageEventBase messageEvent)
+    {
+        var message = ConstructMessageString(messageEvent);
+        logger.LogWarning(message);
+    }
+
+    public static void LogError(this ILogger logger, MessageEventBase messageEvent)
+    {
+        var message = ConstructMessageString(messageEvent);
+        logger.LogError(message);
+    }
+
+    private static string ConstructMessageString(MessageEventBase messageEvent)
     {
         var message = messageEvent.Attachments?.FirstOrDefault()?.Text ?? messageEvent.Text;
 
@@ -15,6 +34,6 @@ public static class LoggerExtensions
         else
             user = "[system]";
 
-        logger.Log($"{messageEvent.Timestamp} {user}: {message}");
+        return $"{messageEvent.Timestamp} {user}: {message}";
     }
 }

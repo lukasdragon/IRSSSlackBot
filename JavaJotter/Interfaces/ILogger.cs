@@ -2,9 +2,22 @@
 
 public interface ILogger
 {
-    public void Log(string message);
+    public enum LogSeverity
+    {
+        Info,
+        Warning,
+        Error
+    }
 
-    public void LogWarning(string message);
+    public void Log(string message, LogSeverity logSeverity = LogSeverity.Info);
 
-    public void LogError(string message);
+    public void LogWarning(string message)
+    {
+        Log(message, LogSeverity.Warning);
+    }
+
+    public void LogError(string message)
+    {
+        Log(message, LogSeverity.Error);
+    }
 }

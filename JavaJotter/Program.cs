@@ -37,7 +37,13 @@ public static class Program
         logger.Log("Connected. Waiting for events...");
 
 
-        Container.Resolve<IMessageScrapper>().Scrape();
+        var scrapper = Container.Resolve<IMessageScrapper>();
+
+        scrapper.MessagesScraped += (sender, args) =>
+        {
+            foreach (var message in args.ScrappedMessages) logger.Log(message);
+        };
+        scrapper.Scrape();
 
         await MaintainLoop(logger);
     }
