@@ -15,7 +15,7 @@ public interface IMessageScrapper
     }
 }
 
-public class MessagesScrapedArgs : EventArgs
+public class MessagesScrapedArgs
 {
     public MessagesScrapedArgs(List<MessageEvent> messages)
     {
