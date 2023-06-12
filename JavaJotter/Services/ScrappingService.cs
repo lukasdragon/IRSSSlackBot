@@ -27,13 +27,19 @@ public class ScrappingService : IMessageScrapper
 
         foreach (var channel in conversationListResponse.Channels)
         {
+            if (!channel.IsMember)
+            {
+                continue;
+            }
+            
+            _logger.Log($"Scraping channel: {channel.Name}...");
+            
             var messages = await GetMessages(channel);
-
-            messages.Reverse();
 
             messageEvents.AddRange(messages);
         }
 
+        _logger.Log($"Scraping complete. Invoking event with {messageEvents.Count} messages...");
         MessagesScraped?.Invoke(this, new MessagesScrapedArgs(messageEvents));
     }
 
@@ -52,6 +58,7 @@ public class ScrappingService : IMessageScrapper
             hasMore = history.HasMore;
         }
 
+        _logger.Log($"Scraped {messageEvents.Count} messages from {conversation.Name}.");
         return messageEvents;
     }
 }

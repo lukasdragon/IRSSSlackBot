@@ -5,14 +5,15 @@
         <TargetFramework>net7.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <ApplicationIcon>Resources\iconNew.ico</ApplicationIcon>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Autofac" Version="7.0.1"/>
-        <PackageReference Include="Config.Net" Version="5.1.5"/>
-        <PackageReference Include="Config.Net.Yaml" Version="5.1.5"/>
-        <PackageReference Include="SlackNet" Version="0.10.23"/>
-        <PackageReference Include="SlackNet.Autofac" Version="0.10.23"/>
+        <PackageReference Include="Autofac" Version="7.0.1" />
+        <PackageReference Include="Config.Net" Version="5.1.5" />
+        <PackageReference Include="Config.Net.Yaml" Version="5.1.5" />
+        <PackageReference Include="SlackNet" Version="0.10.23" />
+        <PackageReference Include="SlackNet.Autofac" Version="0.10.23" />
     </ItemGroup>
 
     <ItemGroup>

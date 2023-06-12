@@ -12,7 +12,7 @@ namespace JavaJotter;
 
 public static class Program
 {
-    private static volatile CancellationTokenSource _cancellationToken = new();
+    private static readonly CancellationTokenSource CancellationToken = new();
 
 
     private static ISlackSocketModeClient? _client;
@@ -51,7 +51,7 @@ public static class Program
     private static void CancelHandler(object? sender, ConsoleCancelEventArgs args)
     {
         args.Cancel = true;
-        _cancellationToken.Cancel();
+        CancellationToken.Cancel();
     }
 
     private static IContainer BuildContainer(IAppAuthSettings settings)
@@ -101,8 +101,13 @@ public static class Program
 
     private static async Task MaintainLoop(ILogger logger)
     {
-        await Task.Delay(-1, _cancellationToken.Token);
-
-        logger.Log("Exiting...");
+        try
+        {
+            await Task.Delay(-1, CancellationToken.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            logger.Log("Exiting...");
+        }
     }
 }
