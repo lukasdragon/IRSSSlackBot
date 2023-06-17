@@ -19,7 +19,7 @@ public class ScrappingService : IMessageScrapper
 
     public event EventHandler<MessagesScrapedArgs>? MessagesScraped;
 
-    public async Task Scrape(DateTime date)
+    public async Task<List<MessageEvent>> Scrape(DateTime date)
     {
         var conversationListResponse = await _slackClient.Conversations.List();
 
@@ -41,6 +41,8 @@ public class ScrappingService : IMessageScrapper
 
         _logger.Log($"Scraping complete. Invoking event with {messageEvents.Count} messages...");
         MessagesScraped?.Invoke(this, new MessagesScrapedArgs(messageEvents));
+
+        return messageEvents;
     }
 
     private async Task<List<MessageEvent>> GetMessages(Conversation conversation)

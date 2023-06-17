@@ -1,7 +1,7 @@
 ﻿using JavaJotter.Interfaces;
 using SlackNet.Events;
 
-namespace JavaJotter;
+namespace JavaJotter.Extensions;
 
 public static class LoggerExtensions
 {
@@ -36,4 +36,6 @@ public static class LoggerExtensions
 
         return $"{messageEvent.Timestamp} {user}: {message}";
     }
+    
+    
 }

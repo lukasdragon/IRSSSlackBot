@@ -6,12 +6,12 @@ public interface IMessageScrapper
 {
     public event EventHandler<MessagesScrapedArgs>? MessagesScraped;
 
-    public Task Scrape(DateTime date);
+    public Task<List<MessageEvent>> Scrape(DateTime date);
 
 
-    public void Scrape()
+    public Task<List<MessageEvent>> Scrape()
     {
-        Scrape(DateTime.MinValue);
+        return Scrape(DateTime.MinValue);
     }
 }
 

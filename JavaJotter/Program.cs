@@ -2,8 +2,10 @@
 using Autofac;
 using Config.Net;
 using JavaJotter.Configuration.Interfaces;
+using JavaJotter.Extensions;
 using JavaJotter.Interfaces;
 using JavaJotter.Services;
+using JavaJotter.Types;
 using SlackNet;
 using SlackNet.Autofac;
 using ILogger = JavaJotter.Interfaces.ILogger;
@@ -13,22 +15,12 @@ namespace JavaJotter;
 public static class Program
 {
     private static readonly CancellationTokenSource CancellationToken = new();
-
-
     private static ISlackSocketModeClient? _client;
-    private static IContainer? Container { get; set; }
+    private static readonly IContainer Container = BuildContainer();
 
 
     private static async Task Main()
     {
-        AppDomain.CurrentDomain.ProcessExit += (_, _) => { Cleanup(); };
-
-        Console.CancelKeyPress += CancelHandler;
-
-
-        var settings = RetrieveSettings();
-        Container = BuildContainer(settings);
-
         var logger = Container.Resolve<ILogger>();
 
         logger.Log("Connecting...");
@@ -36,30 +28,28 @@ public static class Program
         await _client.Connect();
         logger.Log("Connected. Waiting for events...");
 
-
-        var scrapper = Container.Resolve<IMessageScrapper>();
-
-        scrapper.MessagesScraped += (sender, args) =>
-        {
-            foreach (var message in args.ScrappedMessages) logger.Log(message);
-        };
-        scrapper.Scrape();
-
+        
+        Scrape();
+        
         await MaintainLoop(logger);
     }
 
-    private static void CancelHandler(object? sender, ConsoleCancelEventArgs args)
+    private static IAppAuthSettings RetrieveSettings()
     {
-        args.Cancel = true;
-        CancellationToken.Cancel();
+        var settings = new ConfigurationBuilder<IAppAuthSettings>()
+            .UseYamlFile("token.yaml").Build();
+
+        return settings.OAuthToken == string.Empty
+            ? throw new ConfigurationErrorsException("OAuthToken is empty. Please add it to token.yaml")
+            : settings;
     }
 
-    private static IContainer BuildContainer(IAppAuthSettings settings)
+    private static IContainer BuildContainer()
     {
+        var settings = RetrieveSettings();
         var builder = new ContainerBuilder();
-        builder.Register(c => settings).As<IAppAuthSettings>().SingleInstance();
 
-        builder.RegisterType<ConsoleLoggingService>().As<ILogger>();
+        builder.RegisterType<ConsoleLoggingService>().As<ILogger>().SingleInstance();
 
         builder.AddSlackNet(c => c
                 .UseApiToken(settings.OAuthToken)
@@ -78,31 +68,40 @@ public static class Program
         return builder.Build();
     }
 
-    private static IAppAuthSettings RetrieveSettings()
+    public static void Scrape()
     {
-        var settings = new ConfigurationBuilder<IAppAuthSettings>()
-            .UseYamlFile("token.yaml").Build();
+        using var scope = Container.BeginLifetimeScope();
 
-        if (settings.OAuthToken == string.Empty)
-            throw new ConfigurationErrorsException("OAuthToken is empty. Please add it to token.yaml");
-        return settings;
-    }
+        var scrapper = scope.Resolve<IMessageScrapper>();
+        var logger = scope.Resolve<ILogger>();
+        var rollFilter = scope.Resolve<IRollFilter>();
 
-    private static void Cleanup()
-    {
-        Console.WriteLine("Cleaning up...");
 
-        try
+        var messages = scrapper.Scrape().Result;
+
+        List<Roll> rolls = new();
+        foreach (var message in messages)
         {
-            _client?.Disconnect();
+            var roll = rollFilter.ProcessMessage(message);
+
+            if (roll != null) rolls.Add(roll);
         }
-        catch (ObjectDisposedException)
+        
+        logger.Log($"Found {rolls.Count} rolls");
+        foreach (var roll in rolls)
         {
-        } // If we are disposed, no worries.
+            logger.Log(roll);
+        }
     }
 
     private static async Task MaintainLoop(ILogger logger)
     {
+        Console.CancelKeyPress += delegate(object? _, ConsoleCancelEventArgs args)
+        {
+            args.Cancel = true;
+            CancellationToken.Cancel();
+        };
+        
         try
         {
             await Task.Delay(-1, CancellationToken.Token);
