@@ -72,6 +72,8 @@ public static class Program
 
         builder.RegisterType<ScrappingService>().As<IMessageScrapper>();
 
+        builder.RegisterType<RollRollFilter>().As<IRollFilter>();
+
 
         return builder.Build();
     }
