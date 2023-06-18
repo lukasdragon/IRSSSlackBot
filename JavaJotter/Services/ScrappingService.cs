@@ -17,8 +17,6 @@ public class ScrappingService : IMessageScrapper
     }
 
 
-    public event EventHandler<MessagesScrapedArgs>? MessagesScraped;
-
     public async Task<List<MessageEvent>> Scrape(DateTime date)
     {
         var conversationListResponse = await _slackClient.Conversations.List();
@@ -31,22 +29,27 @@ public class ScrappingService : IMessageScrapper
             {
                 continue;
             }
-            
+
             _logger.Log($"Scraping channel: {channel.Name}...");
-            
+
             var messages = await GetMessages(channel);
 
             messageEvents.AddRange(messages);
         }
 
-        _logger.Log($"Scraping complete. Invoking event with {messageEvents.Count} messages...");
-        MessagesScraped?.Invoke(this, new MessagesScrapedArgs(messageEvents));
-
         return messageEvents;
     }
 
-    private async Task<List<MessageEvent>> GetMessages(Conversation conversation)
+    private async Task<List<MessageEvent>> GetMessages(Conversation conversation, DateTime? oldest = null)
     {
+        var oldestTs = "";
+
+        if (oldest != null)
+        {
+            var dateTimeOffset = new DateTimeOffset(oldest.Value);
+            oldestTs = dateTimeOffset.ToUnixTimeSeconds().ToString();
+        }
+        
         var messageEvents = new List<MessageEvent>();
 
         var latestTs = "";
@@ -54,9 +57,9 @@ public class ScrappingService : IMessageScrapper
 
         while (hasMore)
         {
-            var history = await _slackClient.Conversations.History(conversation.Id, latestTs);
+            var history = await _slackClient.Conversations.History(conversation.Id, latestTs, oldestTs);
             messageEvents.AddRange(history.Messages);
-            latestTs = history.Messages.Last().Ts;
+            latestTs = history.Messages.LastOrDefault()?.Ts;
             hasMore = history.HasMore;
         }
 

@@ -5,7 +5,7 @@ using SlackNet.Events;
 
 namespace JavaJotter;
 
-public partial class RollRollFilter : IRollFilter
+public partial class RollFilter : IRollFilter
 {
     public Roll? ProcessMessage(MessageEvent messageEvent)
     {

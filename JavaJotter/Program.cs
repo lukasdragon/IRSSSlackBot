@@ -2,7 +2,6 @@
 using Autofac;
 using Config.Net;
 using JavaJotter.Configuration.Interfaces;
-using JavaJotter.Extensions;
 using JavaJotter.Interfaces;
 using JavaJotter.Services;
 using JavaJotter.Types;
@@ -28,9 +27,9 @@ public static class Program
         await _client.Connect();
         logger.Log("Connected. Waiting for events...");
 
-        
+
         Scrape();
-        
+
         await MaintainLoop(logger);
     }
 
@@ -51,24 +50,22 @@ public static class Program
 
         builder.RegisterType<ConsoleLoggingService>().As<ILogger>().SingleInstance();
 
-        builder.AddSlackNet(c => c
-                .UseApiToken(settings.OAuthToken)
-                .UseAppLevelToken(settings.AppLevelToken)
+        builder.AddSlackNet(c => c.UseApiToken(settings.OAuthToken).UseAppLevelToken(settings.AppLevelToken));
 
-            //Register our slack events here
-            //   .RegisterEventHandler<MessageEvent, MessageHandler>()
-        );
+        //Register our slack events here
+        //   .RegisterEventHandler<MessageEvent, MessageHandler>()
+        //   );
 
 
-        builder.RegisterType<ScrappingService>().As<IMessageScrapper>();
+        builder.RegisterType<MockScrappingService>().As<IMessageScrapper>();
 
-        builder.RegisterType<RollRollFilter>().As<IRollFilter>();
+        builder.RegisterType<RollFilter>().As<IRollFilter>();
 
 
         return builder.Build();
     }
 
-    public static void Scrape()
+    private static void Scrape()
     {
         using var scope = Container.BeginLifetimeScope();
 
@@ -86,7 +83,7 @@ public static class Program
 
             if (roll != null) rolls.Add(roll);
         }
-        
+
         logger.Log($"Found {rolls.Count} rolls");
         foreach (var roll in rolls)
         {
@@ -101,7 +98,7 @@ public static class Program
             args.Cancel = true;
             CancellationToken.Cancel();
         };
-        
+
         try
         {
             await Task.Delay(-1, CancellationToken.Token);
