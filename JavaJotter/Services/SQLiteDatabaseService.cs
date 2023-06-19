@@ -54,27 +54,28 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
         return version;
     }
 
+    private static void CreateUsernameTableIfNotExist(SQLiteConnection sqLiteConnection)
+    {
+        const string sql =
+            @"CREATE TABLE IF NOT EXISTS usernames (id TEXT PRIMARY KEY, username TEXT NOT NULL);";
+
+        using var createUsernameTableCommand = new SQLiteCommand(sql, sqLiteConnection);
+        createUsernameTableCommand.ExecuteNonQuery();
+    }
+
     private static void CreateRollTableIfNotExist(SQLiteConnection sqLiteConnection)
     {
-        const string sql = @"CREATE TABLE IF NOT EXISTS Rolls (
-                            Id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                            UnixMs INTEGER NOT NULL, 
-                            UserId TEXT NOT NULL, 
-                            Value INTEGER NOT NULL,
-                            FOREIGN KEY (UserId) REFERENCES UsernameTable(UserId));";
+        const string sql = @"CREATE TABLE IF NOT EXISTS rolls (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                            unix_milliseconds INTEGER NOT NULL, 
+                            user_id TEXT NOT NULL, 
+                            dice_value INTEGER NOT NULL,
+                            FOREIGN KEY (user_id) REFERENCES usernames(id));";
 
         using var createRollTableCommand = new SQLiteCommand(sql, sqLiteConnection);
         createRollTableCommand.ExecuteNonQuery();
     }
 
-    private static void CreateUsernameTableIfNotExist(SQLiteConnection sqLiteConnection)
-    {
-        const string sql =
-            @"CREATE TABLE IF NOT EXISTS UsernameTable (UserId TEXT PRIMARY KEY, UserName TEXT NOT NULL);";
-
-        using var createUsernameTableCommand = new SQLiteCommand(sql, sqLiteConnection);
-        createUsernameTableCommand.ExecuteNonQuery();
-    }
 
     private static void DeleteAllTables(SQLiteConnection sqLiteConnection)
     {
@@ -120,12 +121,13 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
             await Connect();
         }
 
-        const string sql = "INSERT INTO Rolls (UnixMs, UserId, Value) VALUES (@UnixMs, @UserId, @Value)";
+        const string sql = "INSERT INTO rolls (unix_milliseconds, user_id, dice_value) " +
+                           "VALUES (@unix_milliseconds, @user_id, @dice_value);";
 
         await using var command = new SQLiteCommand(sql, _sqLiteConnection);
-        command.Parameters.AddWithValue("@UnixMs", roll.DateTime.ToUnixTimeMilliseconds());
-        command.Parameters.AddWithValue("@UserId", roll.UserId);
-        command.Parameters.AddWithValue("@Value", roll.Value);
+        command.Parameters.AddWithValue("@unix_milliseconds", roll.DateTime.ToUnixTimeMilliseconds());
+        command.Parameters.AddWithValue("@user_id", roll.UserId);
+        command.Parameters.AddWithValue("@dice_value", roll.Value);
 
         await command.ExecuteNonQueryAsync();
     }
@@ -137,21 +139,21 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
             await Connect();
         }
 
-        const string sql = @"
-        INSERT INTO UsernameTable (UserId, UserName) 
-        VALUES (@UserId, @UserName)
-        ON CONFLICT(UserId) DO UPDATE SET UserName = @UserName";
+        const string sql = @"INSERT INTO usernames (id, username) 
+                             VALUES (@id, @username)
+                             ON CONFLICT(id) DO 
+                             UPDATE SET username = @username";
 
         await using var command = new SQLiteCommand(sql, _sqLiteConnection);
-        command.Parameters.AddWithValue("@UserId", username.Id);
-        command.Parameters.AddWithValue("@UserName", username.Name);
+        command.Parameters.AddWithValue("@id", username.Id);
+        command.Parameters.AddWithValue("@username", username.Name);
 
         await command.ExecuteNonQueryAsync();
     }
 
+    // For simplicity, we're just ensuring that the table name only contains alphanumeric characters and underscores
     private static bool IsValidIdentifier(string tableName)
     {
-        // For simplicity, we're just ensuring that the table name only contains alphanumeric characters and underscores
         return ValidIdentifier().IsMatch(tableName);
     }
 
