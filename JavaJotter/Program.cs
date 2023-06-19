@@ -82,10 +82,13 @@ public static class Program
         if (_onlineMode)
         {
             builder.RegisterType<SlackScrappingService>().As<IMessageScrapper>();
+            builder.RegisterType<SlackUsernameService>().As<IUsernameService>();
         }
         else
         {
             builder.RegisterType<MockScrappingService>().As<IMessageScrapper>();
+            builder.RegisterType<MockUsernameService>().As<IUsernameService>();
+
         }
 
         builder.RegisterType<RollFilter>().As<IRollFilter>();
@@ -97,6 +100,7 @@ public static class Program
 
     private static void Scrape()
     {
+       
         using var scope = _container.BeginLifetimeScope();
 
         var scrapper = scope.Resolve<IMessageScrapper>();

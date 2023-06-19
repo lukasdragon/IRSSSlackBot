@@ -1,4 +1,5 @@
-﻿using JavaJotter.Interfaces;
+﻿using JavaJotter.Helpers;
+using JavaJotter.Interfaces;
 using SlackNet;
 using SlackNet.Events;
 
@@ -34,7 +35,7 @@ internal class MockScrappingService : IMessageScrapper
             else
             {
                 text = "This is a message";
-                userId = RandomDataHelper.GetRandomuserId();
+                userId = MockDataHelper.GetRandomUserId();
             }
 
 
@@ -74,7 +75,7 @@ internal class MockScrappingService : IMessageScrapper
 
         if (isValid)
         {
-            return $"<@{RandomDataHelper.GetRandomuserId()}> rolled *{Random.Next(0, 100)}*";
+            return $"<@{MockDataHelper.GetRandomUserId()}> rolled *{Random.Next(0, 100)}*";
         }
 
         var index = Random.Next(notValidMessages.Length);

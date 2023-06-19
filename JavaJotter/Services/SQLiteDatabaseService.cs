@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using System.Data.SQLite;
+using JavaJotter.Extensions;
 using JavaJotter.Interfaces;
 using JavaJotter.Types;
 
@@ -52,7 +53,7 @@ public class SqLiteDatabaseService : IDatabaseConnection, IDisposable
     {
         const string sql = @"CREATE TABLE IF NOT EXISTS Rolls (
                             Id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                            DateTime TEXT NOT NULL, 
+                            UnixMs INTEGER NOT NULL, 
                             UserId TEXT NOT NULL, 
                             Value INTEGER NOT NULL)";
         
@@ -82,10 +83,10 @@ public class SqLiteDatabaseService : IDatabaseConnection, IDisposable
             await Connect();
         }
 
-        const string sql = "INSERT INTO Rolls (DateTime, UserId, Value) VALUES (@DateTime, @UserId, @Value)";
+        const string sql = "INSERT INTO Rolls (UnixMs, UserId, Value) VALUES (@UnixMs, @UserId, @Value)";
 
         await using var command = new SQLiteCommand(sql, _sqLiteConnection);
-        command.Parameters.AddWithValue("@DateTime", roll.DateTime.ToString("s"));
+        command.Parameters.AddWithValue("@UnixMs", roll.DateTime.ToUnixTimeMilliseconds());
         command.Parameters.AddWithValue("@UserId", roll.UserId);
         command.Parameters.AddWithValue("@Value", roll.Value);
 
