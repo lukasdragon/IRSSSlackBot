@@ -98,17 +98,28 @@ public static class Program
         return builder.Build();
     }
 
-    private static void Scrape()
+    private static async void Scrape()
     {
-       
-        using var scope = _container.BeginLifetimeScope();
+        await using var scope = _container.BeginLifetimeScope();
 
         var scrapper = scope.Resolve<IMessageScrapper>();
         var logger = scope.Resolve<ILogger>();
         var rollFilter = scope.Resolve<IRollFilter>();
+        var usernameService = scope.Resolve<IUsernameService>();
 
+        var databaseConnection = scope.Resolve<IDatabaseConnection>();
 
-        var messages = scrapper.Scrape().Result;
+       
+        var usernames = await usernameService.GetAllUsers();
+        logger.Log($"Recording {usernames.Count} usernames");
+        foreach (var user in usernames)
+        {
+            logger.Log(user);
+            await databaseConnection.InsertUsername(user);
+        }
+        
+
+        var messages = await scrapper.Scrape();
 
         List<Roll> rolls = new();
         foreach (var message in messages)
@@ -118,14 +129,18 @@ public static class Program
             if (roll != null) rolls.Add(roll);
         }
 
+       
+        
         logger.Log($"Found {rolls.Count} rolls");
 
-        var databaseConnection = scope.Resolve<IDatabaseConnection>();
         foreach (var roll in rolls)
         {
             logger.Log(roll);
-            databaseConnection.InsertRoll(roll);
+            await databaseConnection.InsertRoll(roll);
         }
+
+       
+        
     }
 
     private static async Task MaintainLoop(ILogger logger)

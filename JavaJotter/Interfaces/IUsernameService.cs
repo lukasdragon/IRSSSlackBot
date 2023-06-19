@@ -4,5 +4,5 @@ namespace JavaJotter.Interfaces;
 
 public interface IUsernameService
 {
-    public Task<IEnumerable<Username>> GetAllUsers();
+    public Task<List<Username>> GetAllUsers();
 }

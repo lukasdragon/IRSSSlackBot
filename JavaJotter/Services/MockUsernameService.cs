@@ -6,7 +6,7 @@ namespace JavaJotter.Services;
 
 public class MockUsernameService : IUsernameService
 {
-    public async Task<IEnumerable<Username>> GetAllUsers()
+    public async Task<List<Username>> GetAllUsers()
     {
         var names = MockDataHelper.GetUsernames();
         var ids = MockDataHelper.GetUserIds();

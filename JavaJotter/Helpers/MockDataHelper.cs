@@ -3,7 +3,7 @@ using System.Text;
 
 namespace JavaJotter.Helpers;
 
-internal static class MockDataHelper
+internal static partial class MockDataHelper
 {
     private static readonly Random Random = new();
 
@@ -17,39 +17,6 @@ internal static class MockDataHelper
 
         UserIds = ids.ToImmutableArray();
     }
-
-    private static readonly ImmutableArray<string> Usernames = ImmutableArray.Create<string>(
-        "LuckyLuke",
-        "UnluckyLuke",
-        "LukeSkywalker",
-        "LukeCage",
-        "LukeWarm",
-        "LukeDuke",
-        "LukePerry",
-        "LukeWilson",
-        "LukeEvans",
-        "LukeHemsworth",
-        "LukeBracey",
-        "LukeMitchell",
-        "LukeArnold",
-        "LukeGrimes",
-        "LukeBenward",
-        "LukeMacfarlane",
-        "LukePasqualino",
-        "LukeTreadaway",
-        "LukeNewberry",
-        "LukeMably",
-        "LukeYoungblood",
-        "LukeGoss",
-        "LukeKleintank",
-        "LukeBilyk",
-        "LukeMitchell",
-        "LukeYoungblood",
-        "LukeGoss",
-        "LukeKleintank",
-        "LukeBilyk",
-        "LukeMitchell"
-    );
 
     private static readonly ImmutableArray<string> UserIds;
 

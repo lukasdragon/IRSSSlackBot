@@ -16,15 +16,15 @@ public class SlackUsernameService : IUsernameService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<Username>> GetAllUsers()
+    public async Task<List<Username>> GetAllUsers()
     {
         var userListResponse = await _slackClient.Users.List();
 
         var members = userListResponse.Members;
-        
+
         _logger.Log($"Found {members.Count} users");
-        
+
         return members.Select(member
-            => new Username(member.Id, member.Name));
+            => new Username(member.Id, member.Name)).ToList();
     }
 }
