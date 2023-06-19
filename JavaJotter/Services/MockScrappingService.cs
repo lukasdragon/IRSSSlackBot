@@ -4,7 +4,7 @@ using SlackNet.Events;
 
 namespace JavaJotter.Services;
 
-public class MockScrappingService : IMessageScrapper
+internal class MockScrappingService : IMessageScrapper
 {
     private static readonly Random Random = new();
 
@@ -13,8 +13,8 @@ public class MockScrappingService : IMessageScrapper
     {
         var messages = new List<MessageEvent>();
 
-        const int numberOfMessages = 10;
-        for (int i = 0; i < numberOfMessages; i++)
+        const int numberOfMessages = 100;
+        for (var i = 0; i < numberOfMessages; i++)
         {
             var isRoll = Random.Next(2) == 0;
 
@@ -22,7 +22,7 @@ public class MockScrappingService : IMessageScrapper
             var attachments = new List<Attachment>();
 
             var text = "";
-            var user = "";
+            var userId = "";
 
             if (isRoll)
             {
@@ -34,14 +34,15 @@ public class MockScrappingService : IMessageScrapper
             else
             {
                 text = "This is a message";
-                user = GetRandomUserName();
+                userId = RandomDataHelper.GetRandomuserId();
             }
 
 
             messages.Add(new MessageEvent()
             {
+                ClientMsgId = Guid.NewGuid(),
                 Text = text,
-                User = user,
+                User = userId,
                 Channel = "#general",
                 Attachments = attachments,
                 Ts = new DateTimeOffset(DateTime.Today).ToUnixTimeSeconds().ToString()
@@ -68,56 +69,15 @@ public class MockScrappingService : IMessageScrapper
             "<@> rolled *12*",
             "<@RollingBot> *12* rolled",
             "rolled *12* <@RollingBot>",
-            "<@RollingBot rolled *12*",
             "<@RollingBot> rolled *12* extra text"
         };
 
         if (isValid)
         {
-            return $"<@{GetRandomUserName()}> rolled *{Random.Next(0, 100)}*";
+            return $"<@{RandomDataHelper.GetRandomuserId()}> rolled *{Random.Next(0, 100)}*";
         }
 
         var index = Random.Next(notValidMessages.Length);
         return notValidMessages[index];
     }
-
-    private static string GetRandomUserName()
-    {
-        var names = new[]
-        {
-            "LuckyLuke",
-            "UnluckyLuke",
-            "LukeSkywalker",
-            "LukeCage",
-            "LukeWarm",
-            "LukeDuke",
-            "LukePerry",
-            "LukeWilson",
-            "LukeEvans",
-            "LukeHemsworth",
-            "LukeBracey",
-            "LukeMitchell",
-            "LukeArnold",
-            "LukeGrimes",
-            "LukeBenward",
-            "LukeMacfarlane",
-            "LukePasqualino",
-            "LukeTreadaway",
-            "LukeNewberry",
-            "LukeMably",
-            "LukeYoungblood",
-            "LukeGoss",
-            "LukeKleintank",
-            "LukeBilyk",
-            "LukeMitchell",
-            "LukeYoungblood",
-            "LukeGoss",
-            "LukeKleintank",
-            "LukeBilyk",
-            "LukeMitchell",
-        };
-        return names[Random.Next(names.Length)];
-    }
-    
-    
 }

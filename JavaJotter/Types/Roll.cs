@@ -1,3 +1,3 @@
 ﻿namespace JavaJotter.Types;
 
-public record Roll(string User, DateTime DateTime, int Value);
+public record Roll(DateTime DateTime, string UserId, int Value);

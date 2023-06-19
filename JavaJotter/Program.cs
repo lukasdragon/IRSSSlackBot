@@ -15,18 +15,37 @@ public static class Program
 {
     private static readonly CancellationTokenSource CancellationToken = new();
     private static ISlackSocketModeClient? _client;
-    private static readonly IContainer Container = BuildContainer();
+    private static IContainer? _container;
 
+    private static bool _onlineMode = true;
 
-    private static async Task Main()
+    private static async Task Main(string[] args)
     {
-        var logger = Container.Resolve<ILogger>();
+        if (args.Length > 0 && string.Equals(args[0], "--offline", StringComparison.OrdinalIgnoreCase))
+        {
+            _onlineMode = false;
+        }
+        else
+        {
+            _onlineMode = true;
+        }
+
+        _container = BuildContainer();
+
+        var logger = _container.Resolve<ILogger>();
 
         logger.Log("Connecting...");
-        _client = Container.SlackServices().GetSocketModeClient();
-        await _client.Connect();
-        logger.Log("Connected. Waiting for events...");
 
+        if (_onlineMode)
+        {
+            _client = _container.SlackServices().GetSocketModeClient();
+            await _client.Connect();
+            logger.Log("Connected. Waiting for events...");
+        }
+        else
+        {
+            logger.Log("Offline mode. Ready.");
+        }
 
         Scrape();
 
@@ -45,21 +64,32 @@ public static class Program
 
     private static IContainer BuildContainer()
     {
-        var settings = RetrieveSettings();
         var builder = new ContainerBuilder();
 
         builder.RegisterType<ConsoleLoggingService>().As<ILogger>().SingleInstance();
 
-        builder.AddSlackNet(c => c.UseApiToken(settings.OAuthToken).UseAppLevelToken(settings.AppLevelToken));
+        if (_onlineMode)
+        {
+            var settings = RetrieveSettings();
+            builder.AddSlackNet(c => c.UseApiToken(settings.OAuthToken).UseAppLevelToken(settings.AppLevelToken)
 
-        //Register our slack events here
-        //   .RegisterEventHandler<MessageEvent, MessageHandler>()
-        //   );
+                //Register our slack events here
+                //   .RegisterEventHandler<MessageEvent, MessageHandler>()
+            );
+        }
 
 
-        builder.RegisterType<MockScrappingService>().As<IMessageScrapper>();
+        if (_onlineMode)
+        {
+            builder.RegisterType<SlackScrappingService>().As<IMessageScrapper>();
+        }
+        else
+        {
+            builder.RegisterType<MockScrappingService>().As<IMessageScrapper>();
+        }
 
         builder.RegisterType<RollFilter>().As<IRollFilter>();
+        builder.RegisterType<SqLiteDatabaseService>().As<IDatabaseConnection>();
 
 
         return builder.Build();
@@ -67,7 +97,7 @@ public static class Program
 
     private static void Scrape()
     {
-        using var scope = Container.BeginLifetimeScope();
+        using var scope = _container.BeginLifetimeScope();
 
         var scrapper = scope.Resolve<IMessageScrapper>();
         var logger = scope.Resolve<ILogger>();
@@ -85,9 +115,12 @@ public static class Program
         }
 
         logger.Log($"Found {rolls.Count} rolls");
+
+        var databaseConnection = scope.Resolve<IDatabaseConnection>();
         foreach (var roll in rolls)
         {
             logger.Log(roll);
+            databaseConnection.InsertRoll(roll);
         }
     }
 

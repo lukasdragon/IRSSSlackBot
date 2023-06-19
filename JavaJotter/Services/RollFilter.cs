@@ -3,7 +3,7 @@ using JavaJotter.Interfaces;
 using JavaJotter.Types;
 using SlackNet.Events;
 
-namespace JavaJotter;
+namespace JavaJotter.Services;
 
 public partial class RollFilter : IRollFilter
 {
@@ -30,7 +30,7 @@ public partial class RollFilter : IRollFilter
     /// where "SomeUserID" can be a combination of alphanumeric characters,
     /// and "123" represents the roll value which must be an integer.
     /// </remarks>
-    private bool ExtractRoll(MessageEvent messageEvent, out Roll? result)
+    private static bool ExtractRoll(MessageEvent messageEvent, out Roll? result)
     {
         result = null;
 
@@ -39,11 +39,11 @@ public partial class RollFilter : IRollFilter
         if (!RollFormatRegex().IsMatch(message)) return false;
         var taggedUser = TaggedUserRegex().Match(message).Groups[1].Value;
         var rolls = ExtractRollValueRegex().Match(message).Groups[1].Value;
-
+        
 
         if (int.TryParse(rolls, out var rollValue))
         {
-            result = new Roll(taggedUser, messageEvent.Timestamp, rollValue);
+            result = new Roll(messageEvent.Timestamp, taggedUser, rollValue);
             return true;
         }
 

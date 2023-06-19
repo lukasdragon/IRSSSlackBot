@@ -5,12 +5,12 @@ using ILogger = JavaJotter.Interfaces.ILogger;
 
 namespace JavaJotter.Services;
 
-public class ScrappingService : IMessageScrapper
+public class SlackScrappingService : IMessageScrapper
 {
     private readonly ILogger _logger;
     private readonly ISlackApiClient _slackClient;
 
-    public ScrappingService(ISlackServiceProvider slackServiceProvider, ILogger logger)
+    public SlackScrappingService(ISlackServiceProvider slackServiceProvider, ILogger logger)
     {
         _slackClient = slackServiceProvider.GetApiClient();
         _logger = logger;
