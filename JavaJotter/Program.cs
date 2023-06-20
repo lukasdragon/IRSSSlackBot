@@ -8,7 +8,6 @@ using JavaJotter.Types;
 using SlackNet;
 using SlackNet.Autofac;
 using ILogger = JavaJotter.Interfaces.ILogger;
-
 namespace JavaJotter;
 
 public static class Program
@@ -109,7 +108,7 @@ public static class Program
 
         var databaseConnection = scope.Resolve<IDatabaseConnection>();
 
-       
+
         var usernames = await usernameService.GetAllUsers();
         logger.Log($"Recording {usernames.Count} usernames");
         foreach (var user in usernames)
@@ -117,9 +116,15 @@ public static class Program
             logger.Log(user);
             await databaseConnection.InsertUsername(user);
         }
-        
 
-        var messages = await scrapper.Scrape();
+
+        var lastRoll = await databaseConnection.GetLastScrape();
+
+        var lastScrape = lastRoll?.DateTime;
+
+        logger.Log($"Last scrape: {(lastScrape.HasValue ? lastScrape.Value.ToString("yyyy-MM-dd HH:mm:ss") : "Never")}");
+
+        var messages = await scrapper.Scrape(lastScrape);
 
         List<Roll> rolls = new();
         foreach (var message in messages)
@@ -129,8 +134,8 @@ public static class Program
             if (roll != null) rolls.Add(roll);
         }
 
-       
-        
+
+
         logger.Log($"Found {rolls.Count} rolls");
 
         foreach (var roll in rolls)
@@ -139,8 +144,11 @@ public static class Program
             await databaseConnection.InsertRoll(roll);
         }
 
-       
-        
+        var latest = await databaseConnection.GetLastScrape();
+
+        logger.Log($"Latest roll: {latest}");
+
+
     }
 
     private static async Task MaintainLoop(ILogger logger)

@@ -2,7 +2,6 @@
 using JavaJotter.Interfaces;
 using SlackNet;
 using SlackNet.Events;
-
 namespace JavaJotter.Services;
 
 internal class MockScrappingService : IMessageScrapper
@@ -10,17 +9,21 @@ internal class MockScrappingService : IMessageScrapper
     private static readonly Random Random = new();
 
 
-    public Task<List<MessageEvent>> Scrape(DateTime date)
+    public Task<List<MessageEvent>> Scrape(DateTime? date)
     {
         var messages = new List<MessageEvent>();
+
+        var timeStamp = date ?? DateTime.Now - new TimeSpan(0, Random.Next(24), Random.Next(60), Random.Next(60), Random.Next(1000));
 
         const int numberOfMessages = 100;
         for (var i = 0; i < numberOfMessages; i++)
         {
             var isRoll = Random.Next(2) == 0;
 
-
             var attachments = new List<Attachment>();
+
+
+            timeStamp += new TimeSpan(0, Random.Next(1), Random.Next(30), Random.Next(60), Random.Next(1000));
 
             var text = "";
             var userId = "";
@@ -46,8 +49,8 @@ internal class MockScrappingService : IMessageScrapper
                 User = userId,
                 Channel = "#general",
                 Attachments = attachments,
-                Ts = new DateTimeOffset(DateTime.Today).ToUnixTimeSeconds().ToString()
-                
+                Ts = timeStamp.ToTimestamp()
+
             });
         }
 

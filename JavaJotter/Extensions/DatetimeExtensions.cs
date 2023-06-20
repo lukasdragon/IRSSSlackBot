@@ -4,7 +4,7 @@ public static class DatetimeExtensions
 {
     static readonly Random Random = new Random();
 
-    
+
     /// <summary>
     /// Generates a sequence of sequential DateTime objects.
     /// </summary>
@@ -30,24 +30,14 @@ public static class DatetimeExtensions
         var randomDate = DateTime.Now - TimeSpan.FromTicks((long)(Random.NextDouble() * timeSpan.Ticks));
         return randomDate;
     }
-    
+
     public static long ToUnixTimeSeconds(this DateTime dateTime)
     {
         return new DateTimeOffset(dateTime).ToUnixTimeSeconds();
     }
-    
-    public static DateTime FromUnixTimeSeconds(this long seconds)
-    {
-        return DateTimeOffset.FromUnixTimeSeconds(seconds).DateTime;
-    }
-    
+
     public static long ToUnixTimeMilliseconds(this DateTime dateTime)
     {
         return new DateTimeOffset(dateTime).ToUnixTimeMilliseconds();
-    }
-
-    public static DateTime FromUnixTimeMilliseconds(this long milliseconds)
-    {
-        return DateTimeOffset.FromUnixTimeMilliseconds(milliseconds).DateTime;
     }
 }

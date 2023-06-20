@@ -4,12 +4,14 @@ using System.Text.RegularExpressions;
 using JavaJotter.Extensions;
 using JavaJotter.Interfaces;
 using JavaJotter.Types;
-
 namespace JavaJotter.Services;
 
 public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
 {
     private readonly ILogger _logger;
+
+
+    private SQLiteConnection? _sqLiteConnection;
 
     public SqLiteDatabaseService(ILogger logger)
     {
@@ -17,9 +19,6 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
     }
 
     public bool IsConnected => _sqLiteConnection?.State == ConnectionState.Open;
-
-
-    private SQLiteConnection? _sqLiteConnection;
 
     public Task Connect()
     {
@@ -31,11 +30,11 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
 
         var version = GetSqLiteVersion();
 
-        if (version != null) _logger.Log(version);
+        if (version != null) _logger.Log($"Opening connection with SQLite Database; version {version}");
 
 #if DEBUG
-        _logger.Log("Deleting all tables to ensure a clean start for testing in DEBUG mode.");
-        DeleteAllTables(_sqLiteConnection);
+        // _logger.Log("Deleting all tables to ensure a clean start for testing in DEBUG mode.");
+        //   DeleteAllTables(_sqLiteConnection);
 #endif
 
         CreateUsernameTableIfNotExist(_sqLiteConnection);
@@ -43,6 +42,77 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
 
 
         return Task.CompletedTask;
+    }
+
+
+    public async Task InsertRoll(Roll roll)
+    {
+        if (!IsConnected)
+        {
+            await Connect();
+        }
+
+        const string sql = "INSERT INTO rolls (unix_milliseconds, user_id, dice_value) " +
+            "VALUES (@unix_milliseconds, @user_id, @dice_value);";
+
+        await using var command = new SQLiteCommand(sql, _sqLiteConnection);
+        command.Parameters.AddWithValue("@unix_milliseconds", roll.DateTime.ToUnixTimeMilliseconds());
+        command.Parameters.AddWithValue("@user_id", roll.UserId);
+        command.Parameters.AddWithValue("@dice_value", roll.Value);
+
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task InsertUsername(Username username)
+    {
+        if (!IsConnected)
+        {
+            await Connect();
+        }
+
+        const string sql = @"INSERT INTO usernames (id, username) 
+                             VALUES (@id, @username)
+                             ON CONFLICT(id) DO 
+                             UPDATE SET username = @username";
+
+        await using var command = new SQLiteCommand(sql, _sqLiteConnection);
+        command.Parameters.AddWithValue("@id", username.Id);
+        command.Parameters.AddWithValue("@username", username.Name);
+
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task<Roll?> GetLastScrape()
+    {
+        if (!IsConnected)
+            await Connect();
+
+        const string sql = @"SELECT * FROM rolls ORDER BY unix_milliseconds DESC LIMIT 1;";
+
+        await using var command = new SQLiteCommand(sql, _sqLiteConnection);
+
+
+        await using var reader = await command.ExecuteReaderAsync();
+
+        if (!await reader.ReadAsync())
+            return null;
+
+        var dateTime = DateTimeOffset.FromUnixTimeMilliseconds(reader.GetInt64(reader.GetOrdinal("unix_milliseconds"))).DateTime;
+        var userId = reader.GetString(reader.GetOrdinal("user_id"));
+        var value = reader.GetInt32(reader.GetOrdinal("dice_value"));
+
+        return new Roll(dateTime, userId, value);
+    }
+
+    public Task Disconnect()
+    {
+        _sqLiteConnection?.Dispose();
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        _sqLiteConnection?.Dispose();
     }
 
     private string? GetSqLiteVersion()
@@ -70,12 +140,12 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
                             unix_milliseconds INTEGER NOT NULL, 
                             user_id TEXT NOT NULL, 
                             dice_value INTEGER NOT NULL,
-                            FOREIGN KEY (user_id) REFERENCES usernames(id));";
+                            FOREIGN KEY (user_id) REFERENCES usernames(id));
+                            CREATE INDEX IF NOT EXISTS unix_milliseconds_index ON rolls (unix_milliseconds);";
 
         using var createRollTableCommand = new SQLiteCommand(sql, sqLiteConnection);
         createRollTableCommand.ExecuteNonQuery();
     }
-
 
     private static void DeleteAllTables(SQLiteConnection sqLiteConnection)
     {
@@ -113,59 +183,10 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
         }
     }
 
-
-    public async Task InsertRoll(Roll roll)
-    {
-        if (!IsConnected)
-        {
-            await Connect();
-        }
-
-        const string sql = "INSERT INTO rolls (unix_milliseconds, user_id, dice_value) " +
-                           "VALUES (@unix_milliseconds, @user_id, @dice_value);";
-
-        await using var command = new SQLiteCommand(sql, _sqLiteConnection);
-        command.Parameters.AddWithValue("@unix_milliseconds", roll.DateTime.ToUnixTimeMilliseconds());
-        command.Parameters.AddWithValue("@user_id", roll.UserId);
-        command.Parameters.AddWithValue("@dice_value", roll.Value);
-
-        await command.ExecuteNonQueryAsync();
-    }
-
-    public async Task InsertUsername(Username username)
-    {
-        if (!IsConnected)
-        {
-            await Connect();
-        }
-
-        const string sql = @"INSERT INTO usernames (id, username) 
-                             VALUES (@id, @username)
-                             ON CONFLICT(id) DO 
-                             UPDATE SET username = @username";
-
-        await using var command = new SQLiteCommand(sql, _sqLiteConnection);
-        command.Parameters.AddWithValue("@id", username.Id);
-        command.Parameters.AddWithValue("@username", username.Name);
-
-        await command.ExecuteNonQueryAsync();
-    }
-
     // For simplicity, we're just ensuring that the table name only contains alphanumeric characters and underscores
     private static bool IsValidIdentifier(string tableName)
     {
         return ValidIdentifier().IsMatch(tableName);
-    }
-
-    public Task Disconnect()
-    {
-        _sqLiteConnection?.Dispose();
-        return Task.CompletedTask;
-    }
-
-    public void Dispose()
-    {
-        _sqLiteConnection?.Dispose();
     }
 
     [GeneratedRegex("^[a-zA-Z_][a-zA-Z0-9_]*$")]
