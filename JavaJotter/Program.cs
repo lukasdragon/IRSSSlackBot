@@ -86,16 +86,17 @@ public static class Program
         {
             builder.RegisterType<SlackScrappingService>().As<IMessageScrapper>();
             builder.RegisterType<SlackUsernameService>().As<IUsernameService>();
+            builder.RegisterType<SlackChannelService>().As<IChannelService>();
         }
         else
         {
             builder.RegisterType<MockScrappingService>().As<IMessageScrapper>();
             builder.RegisterType<MockUsernameService>().As<IUsernameService>();
-
+            builder.RegisterType<MockChannelService>().As<IChannelService>();
         }
 
         builder.RegisterType<RollFilter>().As<IRollFilter>();
-        builder.RegisterType<PostgresDatabaseService>().As<IDatabaseConnection>();
+        builder.RegisterType<SqLiteDatabaseService>().As<IDatabaseConnection>();
 
 
         return builder.Build();
@@ -109,17 +110,9 @@ public static class Program
         var logger = scope.Resolve<ILogger>();
         var rollFilter = scope.Resolve<IRollFilter>();
         var usernameService = scope.Resolve<IUsernameService>();
+        var channelService = scope.Resolve<IChannelService>();
 
         var databaseConnection = scope.Resolve<IDatabaseConnection>();
-
-
-        var usernames = await usernameService.GetAllUsers();
-        logger.Log($"Recording {usernames.Count} usernames");
-        foreach (var user in usernames)
-        {
-            logger.Log(user);
-            await databaseConnection.InsertUsername(user);
-        }
 
 
         var lastRoll = await databaseConnection.GetLastScrape();
@@ -131,11 +124,12 @@ public static class Program
         var messages = await scrapper.Scrape(lastScrape);
 
         List<Roll> rolls = new();
-        foreach (var message in messages)
+        foreach (var roll in messages.Select(message => rollFilter.ProcessMessage(message)))
         {
-            var roll = rollFilter.ProcessMessage(message);
-
-            if (roll != null) rolls.Add(roll);
+            if (roll == null)
+                continue;
+            logger.Log($"Found roll: {roll}");
+            rolls.Add(roll);
         }
 
 
@@ -148,10 +142,23 @@ public static class Program
             await databaseConnection.InsertRoll(roll);
         }
 
-        var latest = await databaseConnection.GetLastScrape();
+        var nullUsernames = await databaseConnection.GetNullUsernames();
+        foreach (var username in nullUsernames)
+        {
+            logger.Log($"Getting username for {username.Id}");
+            var user = await usernameService.GetUsername(username.Id);
+            if (user != null)
+                await databaseConnection.UpdateUsername(user);
+        }
 
-        logger.Log($"Latest roll: {latest}");
-
+        var nullChannels = await databaseConnection.GetNullChannels();
+        foreach (var channel in nullChannels)
+        {
+            logger.Log($"Getting channel for {channel.Id}");
+            var channelInfo = await channelService.GetChannel(channel.Id);
+            if (channelInfo != null)
+                await databaseConnection.UpdateChannel(channelInfo);
+        }
 
     }
 

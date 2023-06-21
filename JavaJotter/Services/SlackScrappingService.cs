@@ -61,6 +61,9 @@ public class SlackScrappingService : IMessageScrapper
             hasMore = history.HasMore;
         }
 
+
+        foreach (var message in messageEvents)
+            message.Channel = conversation.Id;
         _logger.Log($"Scraped {messageEvents.Count} messages from {conversation.Name}.");
         return messageEvents;
     }

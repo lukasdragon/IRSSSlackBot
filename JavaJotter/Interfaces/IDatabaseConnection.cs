@@ -5,7 +5,11 @@ public interface IDatabaseConnection
 {
     public Task InsertRoll(Roll roll);
 
-    public Task InsertUsername(Username username);
+    public Task UpdateUsername(Username username);
+    public Task UpdateChannel(Channel username);
+
+    Task<List<Username>> GetNullUsernames();
+    public Task<List<Channel>> GetNullChannels();
 
     public Task<Roll?> GetLastScrape();
 }

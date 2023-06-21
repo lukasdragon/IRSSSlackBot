@@ -18,49 +18,100 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
         _logger = logger;
     }
 
-    public bool IsConnected => _sqLiteConnection?.State == ConnectionState.Open;
 
-
-    public async Task InsertRoll(Roll roll)
+    public async Task UpdateUsername(Username username)
     {
-        if (!IsConnected)
+        if (_sqLiteConnection?.State != ConnectionState.Open)
         {
             await Connect();
         }
 
-        const string sql = "INSERT INTO rolls (unix_milliseconds, user_id, dice_value) " +
-            "VALUES (@unix_milliseconds, @user_id, @dice_value);";
+        const string sql = @"
+        INSERT INTO usernames (slack_id, username)
+        VALUES (@slackId, @username)
+        ON CONFLICT(slack_id) DO UPDATE SET username = EXCLUDED.username;
+    ";
 
         await using var command = new SQLiteCommand(sql, _sqLiteConnection);
-        command.Parameters.AddWithValue("@unix_milliseconds", roll.DateTime.ToUnixTimeMilliseconds());
-        command.Parameters.AddWithValue("@user_id", roll.UserId);
-        command.Parameters.AddWithValue("@dice_value", roll.Value);
-
-        await command.ExecuteNonQueryAsync();
-    }
-
-    public async Task InsertUsername(Username username)
-    {
-        if (!IsConnected)
-        {
-            await Connect();
-        }
-
-        const string sql = @"INSERT INTO usernames (id, username) 
-                             VALUES (@id, @username)
-                             ON CONFLICT(id) DO 
-                             UPDATE SET username = @username";
-
-        await using var command = new SQLiteCommand(sql, _sqLiteConnection);
-        command.Parameters.AddWithValue("@id", username.Id);
+        command.Parameters.AddWithValue("@slackId", username.Id);
         command.Parameters.AddWithValue("@username", username.Name);
 
         await command.ExecuteNonQueryAsync();
     }
 
+    public async Task UpdateChannel(Channel channel)
+    {
+        if (_sqLiteConnection?.State != ConnectionState.Open)
+        {
+            await Connect();
+        }
+
+        const string sql = @"
+        INSERT OR IGNORE INTO channels (slack_id, channel_name)
+        VALUES (@slackId, @channel_name)
+        ON CONFLICT(slack_id) DO UPDATE SET channel_name = EXCLUDED.channel_name
+    ";
+
+        await using var command = new SQLiteCommand(sql, _sqLiteConnection);
+        command.Parameters.AddWithValue("@slackId", channel.Id);
+        command.Parameters.AddWithValue("@channel_name", channel.Name);
+
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task InsertRoll(Roll roll)
+    {
+        if (_sqLiteConnection?.State != ConnectionState.Open)
+            await Connect();
+
+        const string insertUsernameSql = @"
+        INSERT OR IGNORE INTO usernames (slack_id, username)
+        VALUES (@user_id, NULL); 
+    ";
+
+        const string insertChannelSql = @"
+        INSERT OR IGNORE INTO channels (slack_id, channel_name)
+        VALUES (@channel_id, NULL); 
+    ";
+
+        const string insertRollSql = @"
+        INSERT INTO rolls (unix_milliseconds, channel_id, user_id, dice_value)
+        VALUES (
+            @unix_milliseconds,
+            (SELECT id FROM channels WHERE slack_id = @channel_id),
+            (SELECT id FROM usernames WHERE slack_id = @user_id),
+            @dice_value
+        );
+    ";
+
+        // Insert username
+        await using (var usernameCommand = new SQLiteCommand(insertUsernameSql, _sqLiteConnection))
+        {
+            usernameCommand.Parameters.AddWithValue("@user_id", roll.UserId);
+            await usernameCommand.ExecuteNonQueryAsync();
+        }
+
+        // Insert channel
+        await using (var channelCommand = new SQLiteCommand(insertChannelSql, _sqLiteConnection))
+        {
+            channelCommand.Parameters.AddWithValue("@channel_id", roll.ChannelId);
+            await channelCommand.ExecuteNonQueryAsync();
+        }
+
+        // Insert roll
+        await using (var rollCommand = new SQLiteCommand(insertRollSql, _sqLiteConnection))
+        {
+            rollCommand.Parameters.AddWithValue("@unix_milliseconds", roll.DateTime.ToUnixTimeMilliseconds());
+            rollCommand.Parameters.AddWithValue("@channel_id", roll.ChannelId);
+            rollCommand.Parameters.AddWithValue("@user_id", roll.UserId);
+            rollCommand.Parameters.AddWithValue("@dice_value", roll.RollValue);
+            await rollCommand.ExecuteNonQueryAsync();
+        }
+    }
+
     public async Task<Roll?> GetLastScrape()
     {
-        if (!IsConnected)
+        if (_sqLiteConnection?.State != ConnectionState.Open)
             await Connect();
 
         const string sql = @"SELECT * FROM rolls ORDER BY unix_milliseconds DESC LIMIT 1;";
@@ -77,15 +128,161 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
         var userId = reader.GetString(reader.GetOrdinal("user_id"));
         var value = reader.GetInt32(reader.GetOrdinal("dice_value"));
 
-        return new Roll(dateTime, userId, value);
+        return new Roll(dateTime, "", userId, value);
     }
 
+    public async Task<List<Username>> GetNullUsernames()
+    {
+        if (_sqLiteConnection?.State != ConnectionState.Open)
+            await Connect();
+
+        const string sql = @"SELECT * FROM usernames WHERE username IS NULL";
+
+        var nullUsernames = new List<Username>();
+
+        await using var command = new SQLiteCommand(sql, _sqLiteConnection);
+
+        await using var reader = await command.ExecuteReaderAsync();
+
+        while (await reader.ReadAsync())
+        {
+            var id = reader["slack_id"] as string ?? "";
+            var name = reader["username"] as string ?? ""; // This will be null
+
+            var username = new Username(id, name);
+
+            nullUsernames.Add(username);
+        }
+
+        return nullUsernames;
+    }
+
+    public async Task<List<Channel>> GetNullChannels()
+    {
+
+        const string sql = @"SELECT * FROM channels WHERE channel_name IS NULL";
+
+        var nullChannels = new List<Channel>();
+
+        await using var command = new SQLiteCommand(sql, _sqLiteConnection);
+
+        await using var reader = await command.ExecuteReaderAsync();
+
+        while (await reader.ReadAsync())
+        {
+            var id = reader["slack_id"] as string ?? "";
+            var name = reader["channel_name"] as string ?? ""; // This will be null
+
+            var channel = new Channel(id, name);
+
+            nullChannels.Add(channel);
+        }
+
+        return nullChannels;
+    }
     public void Dispose()
     {
         _sqLiteConnection?.Dispose();
     }
 
-    public Task Connect()
+    private string? GetSqLiteVersion()
+    {
+        const string sql = @"SELECT SQLITE_VERSION()";
+
+        using var versionCommand = new SQLiteCommand(sql, _sqLiteConnection);
+        var version = versionCommand.ExecuteScalar().ToString();
+        return version;
+    }
+
+    private void CreateTables(SQLiteConnection connection)
+    {
+        CreateUsernameTableIfNotExist(connection);
+        CreateRollTableIfNotExist(connection);
+        CreateChannelTableIfNotExist(connection);
+    }
+    private static void CreateUsernameTableIfNotExist(SQLiteConnection sqLiteConnection)
+    {
+        const string sql =
+            @"CREATE TABLE IF NOT EXISTS usernames (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                slack_id TEXT UNIQUE NOT NULL,
+                username TEXT NULL);";
+
+        using var createUsernameTableCommand = new SQLiteCommand(sql, sqLiteConnection);
+        createUsernameTableCommand.ExecuteNonQuery();
+    }
+
+    private static void CreateChannelTableIfNotExist(SQLiteConnection sqLiteConnection)
+    {
+        const string sql = @"CREATE TABLE IF NOT EXISTS channels (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                                slack_id TEXT UNIQUE NOT NULL, 
+                                channel_name TEXT NULL);";
+
+        using var createChannelTableCommand = new SQLiteCommand(sql, sqLiteConnection);
+        createChannelTableCommand.ExecuteNonQuery();
+    }
+
+    private static void CreateRollTableIfNotExist(SQLiteConnection sqLiteConnection)
+    {
+        const string sql = @"
+        CREATE TABLE IF NOT EXISTS rolls (
+            unix_milliseconds INTEGER NOT NULL, 
+            channel_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL, 
+            dice_value INTEGER NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES usernames(id),
+            FOREIGN KEY (channel_id) REFERENCES channels(id),
+            PRIMARY KEY (unix_milliseconds, channel_id)
+    );
+    CREATE INDEX IF NOT EXISTS unix_milliseconds_index ON rolls (unix_milliseconds);
+";
+
+
+        using var createRollTableCommand = new SQLiteCommand(sql, sqLiteConnection);
+        createRollTableCommand.ExecuteNonQuery();
+    }
+
+
+
+    private static void DeleteAllTables(SQLiteConnection sqLiteConnection)
+    {
+        const string getTableNamesSql = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';";
+
+        var tableNames = new List<string>();
+
+        using var command = new SQLiteCommand(getTableNamesSql, sqLiteConnection);
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            var name = reader["name"].ToString();
+            if (!string.IsNullOrWhiteSpace(name))
+                tableNames.Add(name);
+        }
+
+        using var transaction = sqLiteConnection.BeginTransaction();
+        try
+        {
+            foreach (var tableName in tableNames)
+            {
+                if (!IsValidIdentifier(tableName) || tableName.StartsWith("sqlite_"))
+                    throw new ArgumentException($"Invalid or system table name: {tableName}");
+
+                var deleteTableSql = $"DROP TABLE IF EXISTS \"{tableName}\";";
+                using var dropTableCommand = new SQLiteCommand(deleteTableSql, sqLiteConnection);
+                dropTableCommand.ExecuteNonQuery();
+            }
+
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    private Task Connect()
     {
         const string connectionString = "Data Source=identifier.sqlite";
 
@@ -98,90 +295,17 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
         if (version != null) _logger.Log($"Opening connection with SQLite Database; version {version}");
 
 #if DEBUG
-        // _logger.Log("Deleting all tables to ensure a clean start for testing in DEBUG mode.");
-        //   DeleteAllTables(_sqLiteConnection);
+        _logger.Log("Deleting all tables to ensure a clean start for testing in DEBUG mode.");
+        DeleteAllTables(_sqLiteConnection);
 #endif
 
-        CreateUsernameTableIfNotExist(_sqLiteConnection);
-        CreateRollTableIfNotExist(_sqLiteConnection);
+        CreateTables(_sqLiteConnection);
+
 
 
         return Task.CompletedTask;
     }
 
-    public Task Disconnect()
-    {
-        _sqLiteConnection?.Dispose();
-        return Task.CompletedTask;
-    }
-
-    private string? GetSqLiteVersion()
-    {
-        const string sql = @"SELECT SQLITE_VERSION()";
-
-        using var versionCommand = new SQLiteCommand(sql, _sqLiteConnection);
-        var version = versionCommand.ExecuteScalar().ToString();
-        return version;
-    }
-
-    private static void CreateUsernameTableIfNotExist(SQLiteConnection sqLiteConnection)
-    {
-        const string sql =
-            @"CREATE TABLE IF NOT EXISTS usernames (id TEXT PRIMARY KEY, username TEXT NOT NULL);";
-
-        using var createUsernameTableCommand = new SQLiteCommand(sql, sqLiteConnection);
-        createUsernameTableCommand.ExecuteNonQuery();
-    }
-
-    private static void CreateRollTableIfNotExist(SQLiteConnection sqLiteConnection)
-    {
-        const string sql = @"CREATE TABLE IF NOT EXISTS rolls (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                            unix_milliseconds INTEGER NOT NULL, 
-                            user_id TEXT NOT NULL, 
-                            dice_value INTEGER NOT NULL,
-                            FOREIGN KEY (user_id) REFERENCES usernames(id));
-                            CREATE INDEX IF NOT EXISTS unix_milliseconds_index ON rolls (unix_milliseconds);";
-
-        using var createRollTableCommand = new SQLiteCommand(sql, sqLiteConnection);
-        createRollTableCommand.ExecuteNonQuery();
-    }
-
-    private static void DeleteAllTables(SQLiteConnection sqLiteConnection)
-    {
-        const string getTableNamesSql =
-            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';";
-
-        var tableNames = new List<string>();
-
-        using (var command = new SQLiteCommand(getTableNamesSql, sqLiteConnection))
-        {
-            using (var reader = command.ExecuteReader())
-            {
-                while (reader.Read())
-                {
-                    var name = reader["name"].ToString();
-                    if (!string.IsNullOrEmpty(name))
-                    {
-                        tableNames.Add(name);
-                    }
-                }
-            }
-        }
-
-        foreach (var tableName in tableNames)
-        {
-            if (!IsValidIdentifier(tableName))
-            {
-                throw new ArgumentException($"Invalid table name: {tableName}");
-            }
-
-            var deleteTableSql = $"DROP TABLE IF EXISTS \"{tableName}\";";
-
-            using var command = new SQLiteCommand(deleteTableSql, sqLiteConnection);
-            command.ExecuteNonQuery();
-        }
-    }
 
     // For simplicity, we're just ensuring that the table name only contains alphanumeric characters and underscores
     private static bool IsValidIdentifier(string tableName)

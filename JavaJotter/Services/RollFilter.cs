@@ -2,7 +2,6 @@
 using JavaJotter.Interfaces;
 using JavaJotter.Types;
 using SlackNet.Events;
-
 namespace JavaJotter.Services;
 
 public partial class RollFilter : IRollFilter
@@ -39,11 +38,11 @@ public partial class RollFilter : IRollFilter
         if (!RollFormatRegex().IsMatch(message)) return false;
         var taggedUser = TaggedUserRegex().Match(message).Groups[1].Value;
         var rolls = ExtractRollValueRegex().Match(message).Groups[1].Value;
-        
+
 
         if (int.TryParse(rolls, out var rollValue))
         {
-            result = new Roll(messageEvent.Timestamp, taggedUser, rollValue);
+            result = new Roll(messageEvent.Timestamp, messageEvent.Channel, taggedUser, rollValue);
             return true;
         }
 

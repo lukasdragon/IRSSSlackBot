@@ -2,7 +2,6 @@
 using JavaJotter.Types;
 using SlackNet;
 using ILogger = JavaJotter.Interfaces.ILogger;
-
 namespace JavaJotter.Services;
 
 public class SlackUsernameService : IUsernameService
@@ -26,5 +25,10 @@ public class SlackUsernameService : IUsernameService
 
         return members.Select(member
             => new Username(member.Id, member.Name)).ToList();
+    }
+    public async Task<Username?> GetUsername(string id)
+    {
+        var user = await _slackClient.Users.Info(id);
+        return user is null ? null : new Username(user.Id, user.Name);
     }
 }

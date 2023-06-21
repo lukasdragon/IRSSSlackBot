@@ -29,7 +29,7 @@ public class PostgresDatabaseService : IDatabaseConnection
         await using var commandRoll = _dataSource.CreateCommand(sqlRoll);
         commandRoll.Parameters.AddWithValue("unix_milliseconds", roll.DateTime.ToUnixTimeMilliseconds());
         commandRoll.Parameters.AddWithValue("user_id", roll.UserId);
-        commandRoll.Parameters.AddWithValue("dice_value", roll.Value);
+        commandRoll.Parameters.AddWithValue("dice_value", roll.RollValue);
 
         try
         {
@@ -54,7 +54,7 @@ public class PostgresDatabaseService : IDatabaseConnection
     }
 
 
-    public async Task InsertUsername(Username username)
+    public async Task UpdateUsername(Username username)
     {
         await CreateTables();
 
@@ -70,6 +70,18 @@ public class PostgresDatabaseService : IDatabaseConnection
         command.Parameters.Add(new NpgsqlParameter("username", username.Name));
 
         await command.ExecuteNonQueryAsync();
+    }
+    public async Task UpdateChannel(Channel username)
+    {
+        throw new NotImplementedException();
+    }
+    public async Task<List<Username>> GetNullUsernames()
+    {
+        throw new NotImplementedException();
+    }
+    public async Task<List<Channel>> GetNullChannels()
+    {
+        throw new NotImplementedException();
     }
 
 
@@ -90,7 +102,7 @@ public class PostgresDatabaseService : IDatabaseConnection
         var userId = reader.GetString(reader.GetOrdinal("user_id"));
         var value = reader.GetInt32(reader.GetOrdinal("dice_value"));
 
-        return new Roll(dateTime, userId, value);
+        return new Roll(dateTime, "", userId, value);
     }
 
 

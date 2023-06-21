@@ -62,18 +62,18 @@ internal class MockScrappingService : IMessageScrapper
     {
         var isValid = Random.Next(2) == 0;
 
+        var name = MockDataHelper.GetRandomUserId();
 
         var notValidMessages = new[]
         {
-            "JohnDoe rolled *20*",
-            "<@Alice123>rolled *5*",
-            "<@player8675> rolledd *100*",
-            "<@ID9876> rolled 67",
-            "<@RollingBot> rolled *twelve*",
-            "<@> rolled *12*",
-            "<@RollingBot> *12* rolled",
-            "rolled *12* <@RollingBot>",
-            "<@RollingBot> rolled *12* extra text"
+            $"{name} rolled *20*",
+            $"<@{name}> rolledd *100*",
+            $"<@{name}> rolled 67",
+            $"<@{name}> rolled *twelve*",
+            $"<@>{name} rolled *12*",
+            $"<@{name}> *12* rolled",
+            $"rolled *12* <@{name}>",
+            $"<@{name}> rolled *12* extra text"
         };
 
         if (isValid)
