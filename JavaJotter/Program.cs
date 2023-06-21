@@ -95,7 +95,7 @@ public static class Program
         }
 
         builder.RegisterType<RollFilter>().As<IRollFilter>();
-        builder.RegisterType<SqLiteDatabaseService>().As<IDatabaseConnection>();
+        builder.RegisterType<PostgresDatabaseService>().As<IDatabaseConnection>();
 
 
         return builder.Build();
