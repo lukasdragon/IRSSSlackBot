@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 using JavaJotter.Extensions;
 using JavaJotter.Interfaces;
 using JavaJotter.Types;
-namespace JavaJotter.Services;
+namespace JavaJotter.Services.Databases;
 
 public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
 {
@@ -19,30 +19,6 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
     }
 
     public bool IsConnected => _sqLiteConnection?.State == ConnectionState.Open;
-
-    public Task Connect()
-    {
-        const string connectionString = "Data Source=identifier.sqlite";
-
-        _sqLiteConnection = new SQLiteConnection(connectionString);
-
-        _sqLiteConnection.Open();
-
-        var version = GetSqLiteVersion();
-
-        if (version != null) _logger.Log($"Opening connection with SQLite Database; version {version}");
-
-#if DEBUG
-        // _logger.Log("Deleting all tables to ensure a clean start for testing in DEBUG mode.");
-        //   DeleteAllTables(_sqLiteConnection);
-#endif
-
-        CreateUsernameTableIfNotExist(_sqLiteConnection);
-        CreateRollTableIfNotExist(_sqLiteConnection);
-
-
-        return Task.CompletedTask;
-    }
 
 
     public async Task InsertRoll(Roll roll)
@@ -104,15 +80,39 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
         return new Roll(dateTime, userId, value);
     }
 
+    public void Dispose()
+    {
+        _sqLiteConnection?.Dispose();
+    }
+
+    public Task Connect()
+    {
+        const string connectionString = "Data Source=identifier.sqlite";
+
+        _sqLiteConnection = new SQLiteConnection(connectionString);
+
+        _sqLiteConnection.Open();
+
+        var version = GetSqLiteVersion();
+
+        if (version != null) _logger.Log($"Opening connection with SQLite Database; version {version}");
+
+#if DEBUG
+        // _logger.Log("Deleting all tables to ensure a clean start for testing in DEBUG mode.");
+        //   DeleteAllTables(_sqLiteConnection);
+#endif
+
+        CreateUsernameTableIfNotExist(_sqLiteConnection);
+        CreateRollTableIfNotExist(_sqLiteConnection);
+
+
+        return Task.CompletedTask;
+    }
+
     public Task Disconnect()
     {
         _sqLiteConnection?.Dispose();
         return Task.CompletedTask;
-    }
-
-    public void Dispose()
-    {
-        _sqLiteConnection?.Dispose();
     }
 
     private string? GetSqLiteVersion()

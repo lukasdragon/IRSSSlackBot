@@ -4,6 +4,7 @@ using Config.Net;
 using JavaJotter.Configuration.Interfaces;
 using JavaJotter.Interfaces;
 using JavaJotter.Services;
+using JavaJotter.Services.Databases;
 using JavaJotter.Types;
 using SlackNet;
 using SlackNet.Autofac;
@@ -51,7 +52,7 @@ public static class Program
         await MaintainLoop(logger);
     }
 
-    private static IAppAuthSettings RetrieveSettings()
+    private static IAppAuthSettings RetrieveAuthSettings()
     {
         var settings = new ConfigurationBuilder<IAppAuthSettings>()
             .UseYamlFile("token.yaml").Build();
@@ -67,9 +68,12 @@ public static class Program
 
         builder.RegisterType<ConsoleLoggingService>().As<ILogger>().SingleInstance();
 
+        var settings = RetrieveAuthSettings();
+
+        builder.Register(c => settings).As<IAppAuthSettings>().SingleInstance();
+
         if (_onlineMode)
         {
-            var settings = RetrieveSettings();
             builder.AddSlackNet(c => c.UseApiToken(settings.OAuthToken).UseAppLevelToken(settings.AppLevelToken)
 
                 //Register our slack events here
