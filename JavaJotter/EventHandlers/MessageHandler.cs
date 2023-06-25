@@ -1,5 +1,4 @@
-﻿using JavaJotter.Extensions;
-using SlackNet;
+﻿using SlackNet;
 using SlackNet.Events;
 using ILogger = JavaJotter.Interfaces.ILogger;
 

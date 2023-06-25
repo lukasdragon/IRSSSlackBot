@@ -2,6 +2,7 @@
 using SlackNet;
 using SlackNet.Events;
 using ILogger = JavaJotter.Interfaces.ILogger;
+
 namespace JavaJotter.Services;
 
 public class SlackScrappingService : IMessageScrapper
@@ -24,10 +25,7 @@ public class SlackScrappingService : IMessageScrapper
 
         foreach (var channel in conversationListResponse.Channels)
         {
-            if (!channel.IsMember)
-            {
-                continue;
-            }
+            if (!channel.IsMember) continue;
 
             _logger.Log($"Scraping channel: {channel.Name}...");
 
@@ -43,10 +41,7 @@ public class SlackScrappingService : IMessageScrapper
     {
         var oldestTs = "";
 
-        if (oldest != null)
-        {
-            oldestTs = oldest.Value.ToTimestamp();
-        }
+        if (oldest != null) oldestTs = oldest.Value.ToTimestamp();
 
         var messageEvents = new List<MessageEvent>();
 

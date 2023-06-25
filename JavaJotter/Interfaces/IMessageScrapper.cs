@@ -1,4 +1,5 @@
 ﻿using SlackNet.Events;
+
 namespace JavaJotter.Interfaces;
 
 public interface IMessageScrapper

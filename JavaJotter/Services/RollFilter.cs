@@ -2,6 +2,7 @@
 using JavaJotter.Interfaces;
 using JavaJotter.Types;
 using SlackNet.Events;
+
 namespace JavaJotter.Services;
 
 public partial class RollFilter : IRollFilter
@@ -13,21 +14,25 @@ public partial class RollFilter : IRollFilter
 
 
     /// <summary>
-    /// Extracts a roll from the message event if the message contains a properly formatted dice roll.
+    ///     Extracts a roll from the message event if the message contains a properly formatted dice roll.
     /// </summary>
     /// <param name="messageEvent">The message event which may contain a Dicebot roll message.</param>
-    /// <param name="result">When this method returns, contains the Roll record corresponding
-    /// to the messageEvent if the extraction is successful. The Roll record includes the UserID,
-    /// timestamp, and the roll value. If the extraction fails, this output parameter is set to null.
-    /// The extraction fails if the first text string in the attachment of the messageEvent is not in the
-    /// required format.</param>
-    /// <returns>Returns 'true' if the roll was successfully extracted, and 'false' if the extraction failed
-    /// due to an improperly formatted message.</returns>
+    /// <param name="result">
+    ///     When this method returns, contains the Roll record corresponding
+    ///     to the messageEvent if the extraction is successful. The Roll record includes the UserID,
+    ///     timestamp, and the roll value. If the extraction fails, this output parameter is set to null.
+    ///     The extraction fails if the first text string in the attachment of the messageEvent is not in the
+    ///     required format.
+    /// </param>
+    /// <returns>
+    ///     Returns 'true' if the roll was successfully extracted, and 'false' if the extraction failed
+    ///     due to an improperly formatted message.
+    /// </returns>
     /// <remarks>
-    /// The expected message format is:
-    /// '<![CDATA[<@SomeUserID> rolled *123*]]>'
-    /// where "SomeUserID" can be a combination of alphanumeric characters,
-    /// and "123" represents the roll value which must be an integer.
+    ///     The expected message format is:
+    ///     '<![CDATA[<@SomeUserID> rolled *123*]]>'
+    ///     where "SomeUserID" can be a combination of alphanumeric characters,
+    ///     and "123" represents the roll value which must be an integer.
     /// </remarks>
     private static bool ExtractRoll(MessageEvent messageEvent, out Roll? result)
     {

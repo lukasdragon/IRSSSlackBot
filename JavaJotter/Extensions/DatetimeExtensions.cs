@@ -2,25 +2,22 @@
 
 public static class DatetimeExtensions
 {
-    static readonly Random Random = new Random();
+    private static readonly Random Random = new();
 
 
     /// <summary>
-    /// Generates a sequence of sequential DateTime objects.
+    ///     Generates a sequence of sequential DateTime objects.
     /// </summary>
     /// <param name="startTime">The start time.</param>
     /// <param name="numberOfMinutes">The number of minutes to generate times for.</param>
     /// <returns>A sequence of DateTime objects.</returns>
     public static IEnumerable<DateTime> GenerateSequentialTimes(DateTime startTime, int numberOfMinutes)
     {
-        for (var i = 0; i < numberOfMinutes; i++)
-        {
-            yield return startTime.AddMinutes(i);
-        }
+        for (var i = 0; i < numberOfMinutes; i++) yield return startTime.AddMinutes(i);
     }
 
     /// <summary>
-    /// Generates a random DateTime within a specified number of days in the past.
+    ///     Generates a random DateTime within a specified number of days in the past.
     /// </summary>
     /// <param name="daysInThePast">The number of days in the past to consider for generating a random DateTime.</param>
     /// <returns>A random DateTime.</returns>

@@ -7,18 +7,15 @@ internal static partial class MockDataHelper
 {
     private static readonly Random Random = new();
 
+    private static readonly ImmutableArray<string> UserIds;
+
     static MockDataHelper()
     {
         var ids = new string[Usernames.Length];
-        for (var i = 0; i < Usernames.Length; i++)
-        {
-            ids[i] = EncodeToAlphanumeric(Usernames[i]);
-        }
+        for (var i = 0; i < Usernames.Length; i++) ids[i] = EncodeToAlphanumeric(Usernames[i]);
 
         UserIds = ids.ToImmutableArray();
     }
-
-    private static readonly ImmutableArray<string> UserIds;
 
 
     public static ImmutableArray<string> GetUsernames()

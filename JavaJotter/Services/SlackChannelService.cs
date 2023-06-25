@@ -1,6 +1,7 @@
 ﻿using JavaJotter.Interfaces;
 using SlackNet;
 using Channel = JavaJotter.Types.Channel;
+
 namespace JavaJotter.Services;
 
 public class SlackChannelService : IChannelService

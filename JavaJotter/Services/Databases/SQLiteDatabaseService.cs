@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using JavaJotter.Extensions;
 using JavaJotter.Interfaces;
 using JavaJotter.Types;
+
 namespace JavaJotter.Services.Databases;
 
 public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
@@ -21,10 +22,7 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
 
     public async Task UpdateUsername(Username username)
     {
-        if (_sqLiteConnection?.State != ConnectionState.Open)
-        {
-            await Connect();
-        }
+        if (_sqLiteConnection?.State != ConnectionState.Open) await Connect();
 
         const string sql = @"
         INSERT INTO usernames (slack_id, username)
@@ -41,10 +39,7 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
 
     public async Task UpdateChannel(Channel channel)
     {
-        if (_sqLiteConnection?.State != ConnectionState.Open)
-        {
-            await Connect();
-        }
+        if (_sqLiteConnection?.State != ConnectionState.Open) await Connect();
 
         const string sql = @"
         INSERT OR IGNORE INTO channels (slack_id, channel_name)
@@ -124,7 +119,8 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
         if (!await reader.ReadAsync())
             return null;
 
-        var dateTime = DateTimeOffset.FromUnixTimeMilliseconds(reader.GetInt64(reader.GetOrdinal("unix_milliseconds"))).DateTime;
+        var dateTime = DateTimeOffset.FromUnixTimeMilliseconds(reader.GetInt64(reader.GetOrdinal("unix_milliseconds")))
+            .DateTime;
         var userId = reader.GetString(reader.GetOrdinal("user_id"));
         var value = reader.GetInt32(reader.GetOrdinal("dice_value"));
 
@@ -159,7 +155,6 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
 
     public async Task<List<Channel>> GetNullChannels()
     {
-
         const string sql = @"SELECT * FROM channels WHERE channel_name IS NULL";
 
         var nullChannels = new List<Channel>();
@@ -180,6 +175,7 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
 
         return nullChannels;
     }
+
     public void Dispose()
     {
         _sqLiteConnection?.Dispose();
@@ -200,6 +196,7 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
         CreateRollTableIfNotExist(connection);
         CreateChannelTableIfNotExist(connection);
     }
+
     private static void CreateUsernameTableIfNotExist(SQLiteConnection sqLiteConnection)
     {
         const string sql =
@@ -244,10 +241,10 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
     }
 
 
-
     private static void DeleteAllTables(SQLiteConnection sqLiteConnection)
     {
-        const string getTableNamesSql = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';";
+        const string getTableNamesSql =
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';";
 
         var tableNames = new List<string>();
 
@@ -302,7 +299,6 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
         CreateTables(_sqLiteConnection);
 
 
-
         return Task.CompletedTask;
     }
 
@@ -310,9 +306,9 @@ public partial class SqLiteDatabaseService : IDatabaseConnection, IDisposable
     // For simplicity, we're just ensuring that the table name only contains alphanumeric characters and underscores
     private static bool IsValidIdentifier(string tableName)
     {
-        return ValidIdentifier().IsMatch(tableName);
+        return ValidateIdentity().IsMatch(tableName);
     }
 
     [GeneratedRegex("^[a-zA-Z_][a-zA-Z0-9_]*$")]
-    private static partial Regex ValidIdentifier();
+    private static partial Regex ValidateIdentity();
 }

@@ -36,6 +36,4 @@ public static class LoggerExtensions
 
         return $"{messageEvent.Timestamp} {user}: {message}";
     }
-    
-    
 }

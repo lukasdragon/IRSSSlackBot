@@ -69,7 +69,7 @@ public class PostgresDatabaseService : IDatabaseConnection
         var parameters = new Dictionary<string, object>
         {
             { "slackId", username.Id },
-            { "username", username.Name ?? ""}
+            { "username", username.Name ?? "" }
         };
 
         await ExecuteSqlWithParametersAsync(sql, parameters);
@@ -172,10 +172,7 @@ public class PostgresDatabaseService : IDatabaseConnection
         {
             var dropTablesSql = new StringBuilder("DROP TABLE IF EXISTS ");
 
-            foreach (var tableName in tableNames)
-            {
-                dropTablesSql.Append($"\"{tableName.Replace("\"", "\"\"")}\",");
-            }
+            foreach (var tableName in tableNames) dropTablesSql.Append($"\"{tableName.Replace("\"", "\"\"")}\",");
 
             // Remove the trailing comma
             dropTablesSql.Length--;
@@ -196,7 +193,7 @@ public class PostgresDatabaseService : IDatabaseConnection
         var createTasks = new List<Task>
         {
             CreateUsernameTableIfNotExist(),
-            CreateChannelTableIfNotExist(),
+            CreateChannelTableIfNotExist()
         };
 
         await Task.WhenAll(createTasks);
@@ -257,10 +254,7 @@ public class PostgresDatabaseService : IDatabaseConnection
         await using var command = _dataSource.CreateCommand(sql);
         await using var reader = await command.ExecuteReaderAsync();
 
-        while (await reader.ReadAsync())
-        {
-            resultList.Add(mapFunction(reader));
-        }
+        while (await reader.ReadAsync()) resultList.Add(mapFunction(reader));
 
         return resultList;
     }
@@ -268,10 +262,7 @@ public class PostgresDatabaseService : IDatabaseConnection
     private async Task ExecuteSqlWithParametersAsync(string sql, Dictionary<string, object> parameters)
     {
         await using var command = _dataSource.CreateCommand(sql);
-        foreach (var param in parameters)
-        {
-            command.Parameters.AddWithValue(param.Key, param.Value);
-        }
+        foreach (var param in parameters) command.Parameters.AddWithValue(param.Key, param.Value);
 
         await command.ExecuteNonQueryAsync();
     }

@@ -2,6 +2,7 @@
 using JavaJotter.Interfaces;
 using SlackNet;
 using SlackNet.Events;
+
 namespace JavaJotter.Services;
 
 internal class MockScrappingService : IMessageScrapper
@@ -13,7 +14,8 @@ internal class MockScrappingService : IMessageScrapper
     {
         var messages = new List<MessageEvent>();
 
-        var timeStamp = date ?? DateTime.Now - new TimeSpan(0, Random.Next(24), Random.Next(60), Random.Next(60), Random.Next(1000));
+        var timeStamp = date ?? DateTime.Now -
+            new TimeSpan(0, Random.Next(24), Random.Next(60), Random.Next(60), Random.Next(1000));
 
         const int numberOfMessages = 100;
         for (var i = 0; i < numberOfMessages; i++)
@@ -30,7 +32,7 @@ internal class MockScrappingService : IMessageScrapper
 
             if (isRoll)
             {
-                attachments.Add(new Attachment()
+                attachments.Add(new Attachment
                 {
                     Text = GetRollMessage()
                 });
@@ -42,7 +44,7 @@ internal class MockScrappingService : IMessageScrapper
             }
 
 
-            messages.Add(new MessageEvent()
+            messages.Add(new MessageEvent
             {
                 ClientMsgId = Guid.NewGuid(),
                 Text = text,
@@ -50,7 +52,6 @@ internal class MockScrappingService : IMessageScrapper
                 Channel = "#general",
                 Attachments = attachments,
                 Ts = timeStamp.ToTimestamp()
-
             });
         }
 
@@ -76,10 +77,7 @@ internal class MockScrappingService : IMessageScrapper
             $"<@{name}> rolled *12* extra text"
         };
 
-        if (isValid)
-        {
-            return $"<@{MockDataHelper.GetRandomUserId()}> rolled *{Random.Next(0, 100)}*";
-        }
+        if (isValid) return $"<@{MockDataHelper.GetRandomUserId()}> rolled *{Random.Next(0, 100)}*";
 
         var index = Random.Next(notValidMessages.Length);
         return notValidMessages[index];

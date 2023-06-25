@@ -9,6 +9,7 @@ using JavaJotter.Types;
 using SlackNet;
 using SlackNet.Autofac;
 using ILogger = JavaJotter.Interfaces.ILogger;
+
 namespace JavaJotter;
 
 public static class Program
@@ -22,13 +23,9 @@ public static class Program
     private static async Task Main(string[] args)
     {
         if (args.Length > 0 && string.Equals(args[0], "--offline", StringComparison.OrdinalIgnoreCase))
-        {
             _onlineMode = false;
-        }
         else
-        {
             _onlineMode = true;
-        }
 
         _container = BuildContainer();
 
@@ -73,13 +70,10 @@ public static class Program
         builder.Register(c => settings).As<IAppAuthSettings>().SingleInstance();
 
         if (_onlineMode)
-        {
             builder.AddSlackNet(c => c.UseApiToken(settings.OAuthToken).UseAppLevelToken(settings.AppLevelToken)
-
                 //Register our slack events here
                 //   .RegisterEventHandler<MessageEvent, MessageHandler>()
             );
-        }
 
 
         if (_onlineMode)
@@ -119,7 +113,8 @@ public static class Program
 
         var lastScrape = lastRoll?.DateTime;
 
-        logger.Log($"Last scrape: {(lastScrape.HasValue ? lastScrape.Value.ToString("yyyy-MM-dd HH:mm:ss") : "Never")}");
+        logger.Log(
+            $"Last scrape: {(lastScrape.HasValue ? lastScrape.Value.ToString("yyyy-MM-dd HH:mm:ss") : "Never")}");
 
         var messages = await scrapper.Scrape(lastScrape);
 
@@ -131,7 +126,6 @@ public static class Program
             logger.Log($"Found roll: {roll}");
             rolls.Add(roll);
         }
-
 
 
         logger.Log($"Found {rolls.Count} rolls");
@@ -162,7 +156,6 @@ public static class Program
             if (channelInfo != null)
                 await databaseConnection.UpdateChannel(channelInfo);
         }
-
     }
 
     private static async Task MaintainLoop(ILogger logger)
