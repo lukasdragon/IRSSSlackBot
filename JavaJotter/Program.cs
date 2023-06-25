@@ -96,7 +96,7 @@ public static class Program
         }
 
         builder.RegisterType<RollFilter>().As<IRollFilter>();
-        builder.RegisterType<SqLiteDatabaseService>().As<IDatabaseConnection>();
+        builder.RegisterType<PostgresDatabaseService>().As<IDatabaseConnection>();
 
 
         return builder.Build();
@@ -148,7 +148,10 @@ public static class Program
             logger.Log($"Getting username for {username.Id}");
             var user = await usernameService.GetUsername(username.Id);
             if (user != null)
+            {
+                logger.Log($"Got username for {user.Id}: {user.Name}");
                 await databaseConnection.UpdateUsername(user);
+            }
         }
 
         var nullChannels = await databaseConnection.GetNullChannels();

@@ -1,3 +1,3 @@
 ﻿namespace JavaJotter.Types;
 
-public record Username(string Id, string Name);
+public record Username(string Id, string? Name);
